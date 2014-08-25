@@ -80,3 +80,19 @@ def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A]
 * Corecursion is also sometimes called guarded recursion, and productivity is also sometimes called cotermination.
 
 * Non-strictness can be thought of as a technique for recovering some efficiency when writing functional code, but it’s also a much bigger idea—non-strictness can improve modularity by separating the description of an expression from the how-and-when of its evaluation. Keeping these concerns separate lets you reuse a description in multiple contexts, evaluating different portions of your expression to obtain different results. 
+
+## Chapter 6
+
+* The key to recovering referential transparency is to make the state updates explicit. Don’t update the state as a side effect, but simply return the new state along with the value that you’re generating.
+
+* Rather than returning only the generated random number (as is done in `scala.util.Random`) and updating some internal state by mutating it in place, you return the random number and the new state, leaving the old state unmodified.3 In effect, you separate the concern of *computing* what the next state is from the concern of *communicating* the new state to the rest of the program. 
+
+* It’s also possible in some cases to mutate the data in place without breaking referential transparency.
+
+* (You can) Reimplement `map` and `map2` in terms of `flatMap`. The fact that this is possible is what we’re referring to when we say that `flatMap` is more powerful than `map` and `map2`.
+
+* (...) functional programming is simply programming without side effects. Imperative programming is about programming with statements that modify some program state, and as you’ve seen, it’s entirely reasonable to maintain state without side effects.
+
+* Functional programming has excellent support for writing imperative programs, with the added benefit that such programs can be reasoned about equationally because they’re referentially transparent.
+
+* These two simple actions, together with the `State` combinators that we wrote — `unit`, `map`, `map2`, and `flatMap` — are all the tools you need to implement any kind of state machine or stateful program in a purely functional way.
