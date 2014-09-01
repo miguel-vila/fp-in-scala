@@ -1,3 +1,5 @@
+package soluciones.chapter5.laziness
+
 sealed trait Stream[+A]{
     def toList: List[A] = {
         this match {
@@ -74,7 +76,7 @@ sealed trait Stream[+A]{
         case _ => None        
     }
     def startsWith[AA>:A](other: Stream[AA]): Boolean = {
-        zipAll(other).foldRight(true) { 
+        zipAll(other).foldRight(true) {
             (a,rest) => a match {
                 case (Some(x),Some(y)) => x == y && rest
                 case (None,None) => true
