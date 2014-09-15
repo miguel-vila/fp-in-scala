@@ -2,4 +2,4 @@
 
 [Apuntes](https://github.com/miguel-vila/fp-in-scala/blob/master/Apuntes.md)
 
-[Ejercicios resueltos](https://github.com/miguel-vila/fp-in-scala/blob/master/exercises)
+[Mis soluciones](https://github.com/miguel-vila/fp-in-scala/tree/master/src/main/scala/soluciones)
