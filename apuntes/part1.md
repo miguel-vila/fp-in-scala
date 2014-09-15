@@ -1,6 +1,4 @@
-# Apuntes 'Functional Programming in Scala'
-
-## [Part I: Introduction to functional programming](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/part1.md)
+## Part I: Introduction to functional programming
 
 * [Chapter 1: What is functional programming?](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter1.md)
 
@@ -13,7 +11,3 @@
 * [Chapter 5: Strictness and laziness](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter5.md)
 
 * [Chapter 6: Purely functional state](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter6.md)
-
-## [Part II: Functional design and combinator libraries](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/part2.md)
-
-* [Chapter 7: Purely functional parallelism](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter7.md)
