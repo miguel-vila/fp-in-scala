@@ -136,14 +136,14 @@ object Par {
       val (l1,l2) = l.splitAt( l.length/2 )
       val b1 = parFold2(l1)(f)
       val b2 = parFold2(l2)(f)
-      map2(b1,b2)(M.append)
+      map2(b1,b2)(M.append(_,_))
     }
   }
 
   def parMax[A: Order](minValue: A)(l: List[A]): Par[A] = {
     implicit val M = new Monoid[A] {
       def zero = minValue
-      def append(a1: A, a2: A) = {
+      def append(a1: A, a2: => A) = {
         val cmp = implicitly[Order[A]].order(a1,a2)
         cmp match {
           case GT => a1
