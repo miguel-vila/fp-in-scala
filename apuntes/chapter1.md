@@ -22,3 +22,7 @@
 of the whole (...)
 
 * A pure function is modular and composable because it separates the logic of the computation itself from "what to do with the result" and "how to obtain the input"; it is a black box.
+
+### Chapter Notes
+
+* [Paper: Why Functional Programming Matters](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/WhyFunctionalProgrammingMatters.md)
