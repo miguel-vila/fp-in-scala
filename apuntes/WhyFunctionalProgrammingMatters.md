@@ -77,3 +77,38 @@ map f = foldr (Cons . f ) Nil
 * Functional programming languages provide two new kinds of glue — higher-order functions and lazy evaluation.
 
 * This paper provides further evidence that lazy evaluation is too important to be relegated to second class citizenship. It is perhaps the most powerful glue functional programmers possess. One should not obstruct access to such a vital tool.
+ 
+* Un contraste, traducido a Scala. Imperativamente el siguiente algoritmo es indivisible:
+ 
+```scala
+def sqrt(a0: Double, eps: Double, n: Double): Double = {
+    var x = a0
+    var y = a0 + 2.0 * eps
+    while ( Math.abs(x-y) > eps ) {
+        y = x
+        x = (x + n/x) / 2.0
+    }
+    x
+}
+```
+
+* En cambio, si uno lo expresa funcionalmente, lo puede dividir en partes:
+ 
+```scala
+def repeat[A](f: A => A)(a: => A): Stream[A] = a #:: repeat(f)(f(a))
+ 
+def next(n: Double)(x: Double): Double = (x + n/x)/2.0
+ 
+def within(eps: Double)(s: Stream[Double]): Double = s match {
+    case a #:: b #:: rest => if(Math.abs(a-b)<=eps) b else within(eps)(rest)
+    case _ => throw new Exception("El stream debería tener por lo menos dos elementos")
+}
+ 
+def sqrt(a0: Double, eps: Double, n: Double): Double = within(eps)(repeat(next(n))(a0))
+```
+
+* En Miranda / Haskell la última línea sería:
+
+```miranda
+sqrt a0 eps n = within eps (repeat (next n) a0)
+```
