@@ -20,16 +20,10 @@ object Chapter2Solutions {
 
   @annotation.tailrec
   def isSorted[A](as: Array[A], ordered: (A,A) => Boolean): Boolean = {
-    if(as.isEmpty)
+    if(as.length <= 1)
       true
-    else if(as.length == 1)
-      true
-    else {
-      val h1 = as.head
-      val tail = as.tail
-      val h2 = tail.head
-      ordered(h1,h2) && isSorted(tail,ordered)
-    }
+    else
+      ordered(as(0),as(1)) && isSorted(as.tail,ordered)
   }
 
   def curry[A,B,C](f: (A,B) => C): A => (B => C) = a => f(a,_)
