@@ -31,3 +31,15 @@
 * **(About Library Design):** here aren’t such clear boundaries between designing your API and choosing a representation, and one doesn’t necessarily precede the other. 
 
 * **(About Library Design):** before we add any new primitive operations, let’s try to learn more about what’s expressible using those we already have.
+
+
+* **EXERCISE 7.9:** Show that any fixed-size thread pool can be made to deadlock given this implementation of fork.
+
+```scala
+def fork[A](a: => Par[A]): Par[A] =
+	es => es.submit(new Callable[A] {
+		def call = a(es).get
+	})
+```
+
+Suponga un _pool_ de _threads_ de tamaño fijo igual a _n_ y que se llama el método `fork` _n_ veces concurrentemente. Cada llamada empezará a ejecutar el `es.submit(...)` y por lo tanto cada una va a ocupar un _thread_. Luego los _n threads_ del _pool_ se van a ocupar en ese momento. Después, cada llamada, que ha ocupado un _thread_, deberá ejecutar `a(es).get` para completarse. Pero para hacer esto debe ser capaz de reclamar uno de los _n threads_ que han sido ocupados. Cada uno de estos _threads_ ha sido ocupado esperando la liberación de otro _thread_. Por lo tanto se produce un _deadlock_.
