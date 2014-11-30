@@ -99,7 +99,7 @@ object Chapter3Solutions {
   def depth[A](tree: Tree[A]): Int = {
     tree match {
       case Leaf(_) => 1
-      case Branch(l,r) => Math.max(depth(l), depth(r))
+      case Branch(l,r) => 1 + Math.max(depth(l), depth(r))
     }
   }
 
@@ -121,7 +121,7 @@ object Chapter3Solutions {
 
   def treeMaxFold(tree: Tree[Int]): Int = foldTree(tree)(i => i)(Math.max)
 
-  def depthFold[A](tree: Tree[A]): Int = foldTree(tree)(_ => 1)(Math.max)
+  def depthFold[A](tree: Tree[A]): Int = foldTree(tree)(_ => 1)( (l,r) => 1 + Math.max(l,r) )
 
   def mapTreeFold[A,B](tree: Tree[A])(f: A => B): Tree[B] = foldTree(tree)(a => Leaf(f(a)) : Tree[B] )( Branch.apply )
 }
