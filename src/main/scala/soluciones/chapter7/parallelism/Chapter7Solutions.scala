@@ -172,8 +172,31 @@ object Par {
 
   def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
     es =>
-      if (run(es)(cond).get) t(es) // Notice we are blocking on the result of `cond`.
+      if (run(es)(cond).get) t(es)
       else f(es)
+
+  def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = {
+    es =>
+      val par = choices(run(es)(n).get)
+      par(es)
+  }
+
+  def choiceUsingChoiceN[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] =
+    choiceN(map(cond)(b => if(b) 1 else 0))(List(t,f))
+
+  def choiceMap[K,V](key: Par[K])(choices: Map[K,Par[V]]): Par[V] = {
+    es =>
+      val par = choices( run(es)(key).get )
+      par(es)
+  }
+
+  def choose[A,B](pa: Par[A])(choices: A => Par[B]): Par[B] = {
+    es =>
+      val par = choices( pa(es).get )
+      par(es)
+  }
+
+  def join[A](a: Par[Par[A]]): Par[A] = choose(a)(a => a)
 
   def parMap[A,B](ps: List[A])(f: A => B): Par[List[B]] = fork {
     val fbs: List[Par[B]] = ps.map(asyncF(f))
