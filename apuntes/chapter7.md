@@ -4,6 +4,9 @@
 
 * `Thread` also has the disadvantage that it maps directly onto operating system threads, which are a scarce resource. It would be preferable to create as many “logical threads” as is natural for your problem, and later deal with mapping these onto actual OS threads.
 
+* We’ll use the term **logical thread** somewhat informally throughout this chapter to mean a computation that runs concurrently with the main execution thread of our program. There need not be a one-to-one correspondence between **logical threads** and **OS threads**. We may have a large number of logical threads mapped onto a smaller number of OS threads via thread pooling, for instance.
+
+
 * **(About Library Design):** (...) note what we’ve done. First, we conjured up a simple, almost trivial example. We next explored this example a bit to uncover a design choice. Then, via some experimentation, we discovered an interesting consequence of one option and in the process learned something fundamental about the nature of our problem domain! The overall design process is a series of these little adventures
 
 * **(About Library Design):** You don’t need any special license to do this sort of exploration, and you don’t need to be an expert in functional programming either. Just dive in and see what you find.
@@ -32,6 +35,22 @@
 
 * **(About Library Design):** before we add any new primitive operations, let’s try to learn more about what’s expressible using those we already have.
 
+* **EXERCISE 7.7:** Given `map(y)(id) == y`, it's a free theorem that `map(map(y)(g))(f) == map(y)(f compose g)`. (This is sometimes called map fusion, and it can be used as an optimization—rather than spawning a separate parallel computation to compute the second mapping, we can fold it into the first mapping.) Can you prove it?
+
+Si se tienen unas funciones `f`, `g`, `p` y `q` tales que para cualquier argumento `y`:
+
+```scala
+	f(g(y)) == p(q(y)) // entonces se tiene que
+	map(map(y)(g))(f) == map(map(y)(p))(q)
+```
+
+Luego partiendo de `p == id` y `q == f compose g` entonces tenemos que para cualquier argumento `y`:
+
+```scala
+	map(map(y)(g))(f) == 
+	map(map(y)(id))(f compose g) == // Ya que map(y)(id) == y
+	map(y)(f compose g)
+```
 
 * **EXERCISE 7.9:** Show that any fixed-size thread pool can be made to deadlock given this implementation of fork.
 
