@@ -66,9 +66,12 @@ sealed trait Stream[+A]{
         case Cons(h,t) => if(p(h())) Some((h(),t())) else None
         case Empty => None
     }
+    def find(p: A => Boolean): Option[A] = foldRight(None: Option[A])((a,b) => if(p(a)) Some(a) else b)
     def zipWith[B,C](other: Stream[B])(f: (A,B) => C): Stream[C] = Stream.unfold((this,other)){
-        case _ => None
+      case (Cons(x,xtl),Cons(y,ytl)) => Some((f(x(), y()), (xtl(), ytl())))
+      case _ => None
     }
+    def zip[B](other: Stream[B]): Stream[(A,B)] = zipWith(other)((_,_))
     def zipAll[B](other: Stream[B]): Stream[(Option[A],Option[B])] = Stream.unfold((this,other)){
         case (Cons(h1,t1),Cons(h2,t2)) => Some((( Some( h1() ) , Some ( h2() ) ), ( t1() , t2() ) ) )
         case (Cons(h1,t1),Empty) => Some((( Some( h1() ) , None ), ( t1() , Empty ) ) )       
