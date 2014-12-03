@@ -4,10 +4,18 @@ import soluciones.chapter6.state.{ RNG , Simple, State }
 import Prop._
 import soluciones.chapter5.laziness.Stream
 
-case class Gen[A](sample: State[RNG, A]) {
+case class Gen[+A](sample: State[RNG, A]) {
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(sample.flatMap(a => f(a).sample))
   def map[B](f: A => B): Gen[B] = Gen(sample.map(f))
-  def listOfN(size: Gen[Int]): Gen[List[A]] = size.flatMap(Gen.listOfN(_,this))
+  def listOfN(size: Gen[Int]): Gen[List[A]] = size.flatMap(listOfN)
+  def listOfN(n: Int): Gen[List[A]] = Gen.listOfN(n,this)
+  def unsized: SGen[A] = SGen(_ => this)
+  def **[B](other: Gen[B]): Gen[(A,B)] = {
+    for {
+      a <- this
+      b <- other
+    } yield (a,b)
+  }
 }
 
 object Gen {
@@ -46,6 +54,30 @@ object Gen {
     }
   }
 
+  def sequence[A](list: List[Gen[A]]): Gen[List[A]] = {
+    list match {
+      case Nil => unit(Nil)
+      case g :: gtl => for {
+        a <- g
+        atl <- sequence(gtl)
+      } yield a :: atl
+    }
+  }
+}
+
+case class SGen[+A](forSize: Int => Gen[A]) {
+  def flatMap[B](f: A => SGen[B]): SGen[B] = SGen { n =>
+    forSize(n).flatMap{
+      a => f(a).forSize(n)
+    }
+  }
+  def map[B](f: A => B): SGen[B] = SGen(n => forSize(n).map(f) )
+  def **[B](other: SGen[B]): SGen[(A,B)] = SGen { n => forSize(n) ** other.forSize(n) }
+  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(g.listOfN)
+}
+
+object SGen {
+  def unit[A](a: => A): SGen[A] = SGen(_ => Gen.unit(a))
 }
 
 case class Prop(run: (MaxSize,TestCases,RNG) => Result) {
