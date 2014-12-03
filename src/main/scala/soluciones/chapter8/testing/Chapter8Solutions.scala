@@ -73,11 +73,11 @@ case class SGen[+A](forSize: Int => Gen[A]) {
   }
   def map[B](f: A => B): SGen[B] = SGen(n => forSize(n).map(f) )
   def **[B](other: SGen[B]): SGen[(A,B)] = SGen { n => forSize(n) ** other.forSize(n) }
-  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(g.listOfN)
 }
 
 object SGen {
   def unit[A](a: => A): SGen[A] = SGen(_ => Gen.unit(a))
+  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(g.listOfN)
 }
 
 case class Prop(run: (MaxSize,TestCases,RNG) => Result) {
@@ -132,13 +132,29 @@ object Prop {
     Stream.unfold(rng)(rng => Some(g.sample.run(rng)))
 
   def forAll[A](as: Gen[A])(f: A => Boolean): Prop = Prop {
-    (n, rng) => randomStream(as)(rng).zip(Stream.from(0)).take(n).map {
+    (_,n, rng) => randomStream(as)(rng).zip(Stream.from(0)).take(n).map {
       case (a, i) => try {
         if (f(a)) Passed else Falsified(a.toString, i)
       } catch {
         case e: Exception => Falsified(buildMsg(a, e), i)
       }
     }.find(_.isFalsified).getOrElse(Passed)
+  }
+
+  def forAll[A](g: SGen[A])(f: A => Boolean): Prop =
+    forAll(g.forSize)(f)
+
+  def forAll[A](g: Int => Gen[A])(f: A => Boolean): Prop = Prop {
+    (max, n, rng) =>
+      val casesPerSize = (n + (max - 1)) / max
+      val props: Stream[Prop] = Stream.from(0).take((n min max) + 1).map(i => forAll(g(i))(f))
+      val prop: Prop = props.map(p => Prop { (max, _, rng) =>
+        p.run(max, casesPerSize, rng)
+      }).toList.reduce(_ && _)
+      val x = props.map(p => Prop { (max, _, rng) =>
+        p.run(max, casesPerSize, rng)
+      }).toList
+      prop.run(max, n, rng)
   }
 
   // String interpolation syntax. A string starting with `s"` can refer to
@@ -149,6 +165,30 @@ object Prop {
       s"generated an exception: ${e.getMessage}\n" +
       s"stack trace:\n ${e.getStackTrace.mkString("\n")}"
 
-  def apply(f: (TestCases,RNG) => Result): Prop =
-    Prop { (_,n,rng) => f(n,rng) }
+  def run(p: Prop,
+           maxSize: Int = 100,
+           testCases: Int = 100,
+           rng: RNG = Simple(System.currentTimeMillis())): Unit = {
+    p.run(maxSize,testCases,rng) match {
+      case Falsified(msg, n) =>
+        println(s"! Falsified after $n passed tests:\n $msg")
+      case Passed | Proved =>
+        println(s"+ OK, passed $testCases tests.")
+    }
+  }
+
+}
+
+object Test extends App {
+  import Prop._
+  import SGen._
+
+  val smallInt = Gen.choose(-10,10)
+  val maxProp = forAll(listOf(smallInt)) { ns =>
+    val max = ns.max
+    !ns.exists(_ > max)
+  }
+
+  run(maxProp)
+
 }
