@@ -35,6 +35,51 @@
 
 * **(About Library Design):** before we add any new primitive operations, let’s try to learn more about what’s expressible using those we already have.
 
+* (...) we often get far just by writing down the type signature for an operation we want, and then “following the types” to an implementation. (...) This isn’t cheating; it’s a natural style of reasoning, analogous to the reasoning one does when simplifying an algebraic equation.
+
+* Up until now, we’ve been reasoning somewhat informally about our API. There’s nothing wrong with this, but it can be helpful to take a step back and formalize what laws you expect to hold (or would like to hold) for your API.
+
+* **Paralelos entre leyes y funciones:** Laws and functions share much in common. Just as we can generalize functions, we can generalize laws. (...) Much like we strive to define functions in terms of simpler functions, each of which _do_ just one thing, we can define laws in terms of simpler laws that each _say_ just one thing.
+
+* Laws often start out this way, as concrete examples of **identities** we expect to hold.
+
+* For now, let’s say two `Par` objects are equivalent if for any valid `ExecutorService` argument, their `Future` results have the same value.
+
+* **Leyes simples "rechazan" implementaciones sin sentido:**
+```scala
+map(unit(x))(f) == unit(f(x))
+```
+(...) This places some constraints on our implementation. Our implementation of unit can’t, say, inspect the value it receives and decide to return a parallel computation with a result of 42 when the input is 1—it can only pass along whatever it receives.
+
+* Simplificando la anterior ley:
+```scala
+map(unit(x))(f) == unit(f(x)) // <- Initial law
+map(unit(x))(id) == unit(id(x)) // <- Substitute identity function for f.
+map(unit(x))(id) == unit(x) // <- Simplify.
+map(y)(id) == y // <- Substitute y for unit(x) on both sides.
+```
+Our new, simpler law talks only about `map`—apparently the mention of `unit` was an extraneous detail. To get some insight into what this new law is saying, let’s think about what map can’t do. It can’t, say, throw an exception and crash the computation before applying the function to the result.
+
+Even more interestingly, given `map(y)(id) == y`, we can perform the substitutions in the other direction to get back our original, more complex law. (Try it!) **Logically, we have the freedom to do so because map can’t possibly behave differently for different function types it receives**. Thus, given `map(y)(id)== y`, it must be true that `map(unit(x))(f) == unit(f(x))`. Since we get this second law or theorem for free, simply because of the **parametricity** of map, it’s sometimes called a **free theorem**.
+
+* **About library design:** After you’ve written down a law like this, take off your implementer hat, put on your debugger hat, and try to break your law. Think through any possible corner cases, try to come up with counterexamples, and even construct an informal proof that the law holds—at least enough to convince a skeptical fellow programmer.
+
+* **Side effects** hurt compositionality, but more generally, **any hidden or out-of-band assumption or behavior that prevents us from treating our components (be they functions or anything else) as black boxes** makes composition difficult or impossible.
+
+* When you find counterexamples like this, you have two choices—you can try to fix your implementation such that the law holds, or you can refine your law a bit, to state more explicitly the conditions under which it holds (you could simply stipulate that you require thread pools that can grow unbounded). Even this is a good exercise—it forces you to document invariants or assumptions that were previously implicit.
+
+* (...) we’re making use of a common technique of using **side effects** as an implementation detail for a purely functional API. We can get away with this because the side effects we use are not observable to code that uses `Par`. Note that `Future.apply` is protected and can’t even be called by outside code.
+
+* An Actor is essentially a concurrent process **that doesn’t constantly occupy a thread**. Instead, **it only occupies a thread when it receives a message**. Importantly, although multiple threads may be concurrently sending messages to an actor, **the actor processes only one message at a time, queueing other messages for subsequent processing**. This makes them useful as a concurrency primitive when writing tricky code that must be accessed by multiple threads, and which would otherwise be prone to race conditions or deadlocks.
+
+* The main trickiness in an actor implementation has to do with the fact that multiple threads may be messaging the actor simultaneously. The implementation needs to ensure that messages are processed only one at a time, and also that all messages sent to the actor will be processed eventually rather than queued indefinitely.
+
+* **About library design:** In general, there are multiple approaches you can consider when choosing laws for your API. You can think about your conceptual model, and reason from there to postulate laws that should hold. You can also just _invent_ laws you think might be useful or instructive (like we did with our `fork` law), and see if it’s possible and sensible to ensure that they hold for your model. And lastly, you can look at your _implementation_ and come up with laws you expect to hold based on that.
+
+* **¿Subutilizar un API es un signo de que uno puede generalizar más?:** If we look at our implementation of `choiceMap`, we can see we aren’t really using much of the API of `Map`.
+
+* As you practice more functional programming, one of the skills you’ll develop is the ability to recognize _what functions are expressible from an algebra_, and what the limitations of that algebra are. (...) As a practical consideration, being able to reduce an API to a minimal set of primitive functions is extremely useful. As we noted earlier when we implemented `parMap` in terms of existing combinators, it’s frequently the case that primitive combinators encapsulate some rather tricky logic, and reusing them means we don’t have to duplicate this logic.
+
 * **EXERCISE 7.7:** Given `map(y)(id) == y`, it's a free theorem that `map(map(y)(g))(f) == map(y)(f compose g)`. (This is sometimes called map fusion, and it can be used as an optimization—rather than spawning a separate parallel computation to compute the second mapping, we can fold it into the first mapping.) Can you prove it?
 
 Si se tienen unas funciones `f`, `g`, `p` y `q` tales que para cualquier argumento `y`:
@@ -44,7 +89,7 @@ Si se tienen unas funciones `f`, `g`, `p` y `q` tales que para cualquier argumen
 	map(map(y)(g))(f) == map(map(y)(p))(q)
 ```
 
-Luego partiendo de `p == id` y `q == f compose g` entonces tenemos que para cualquier argumento `y`:
+Luego reemplazando `p == id` y `q == f compose g` entonces tenemos que para cualquier argumento `y`:
 
 ```scala
 	map(map(y)(g))(f) == 
