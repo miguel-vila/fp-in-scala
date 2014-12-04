@@ -78,6 +78,7 @@ case class SGen[+A](forSize: Int => Gen[A]) {
 object SGen {
   def unit[A](a: => A): SGen[A] = SGen(_ => Gen.unit(a))
   def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(g.listOfN)
+  def listOfAtLeast1[A](g: Gen[A]): SGen[List[A]] = SGen(n => g.listOfN(n max 1))
 }
 
 case class Prop(run: (MaxSize,TestCases,RNG) => Result) {
@@ -172,9 +173,15 @@ object Prop {
     p.run(maxSize,testCases,rng) match {
       case Falsified(msg, n) =>
         println(s"! Falsified after $n passed tests:\n $msg")
-      case Passed | Proved =>
+      case Passed =>
         println(s"+ OK, passed $testCases tests.")
+      case Proved =>
+        println("+ OK, proved property.")
     }
+  }
+
+  def check(p: => Boolean): Prop = Prop { (_,_,_) =>
+    if(p) Proved else Falsified("()",0)
   }
 
 }
@@ -184,11 +191,33 @@ object Test extends App {
   import SGen._
 
   val smallInt = Gen.choose(-10,10)
-  val maxProp = forAll(listOf(smallInt)) { ns =>
+  val maxProp = forAll(listOfAtLeast1(smallInt)) { ns =>
     val max = ns.max
     !ns.exists(_ > max)
   }
 
+  def sorted(ns: List[Int]): Boolean = {
+    if(ns.length<=1) {
+      true
+    } else {
+      val init = ns.toStream
+      val tail = init.tail
+      (init zip tail).foldLeft(true){ case (acc,(a,b)) => a <= b && acc }
+    }
+  }
+
+  def sameElementsWithSameTimes(xs: List[Int], ys: List[Int]): Boolean = {
+    xs.groupBy(x => x).mapValues(_.length) == ys.groupBy(x => x).mapValues(_.length)
+  }
+
+  val sortedProp = forAll(listOf(Gen.choose(-100000,100000))) { ns =>
+    val sortedNs = ns.sorted
+    sorted(sortedNs) && sameElementsWithSameTimes(ns, sortedNs)
+  }
+
+  println("MAX PROP:")
   run(maxProp)
+  println("SORTED PROP:")
+  run(sortedProp)
 
 }
