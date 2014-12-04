@@ -1,8 +1,17 @@
 package soluciones.chapter8.testing
 
+import java.util.concurrent.{Executors, ExecutorService}
+
 import soluciones.chapter6.state.{ RNG , Simple, State }
 import Prop._
 import soluciones.chapter5.laziness.Stream
+import soluciones.chapter7.parallelism.Par
+import soluciones.chapter7.parallelism.Par.Par
+import soluciones.chapter7.parallelism.Par.Par
+
+object ** {
+  def unapply[A,B](p: (A,B)) = Some(p)
+}
 
 case class Gen[+A](sample: State[RNG, A]) {
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(sample.flatMap(a => f(a).sample))
@@ -184,6 +193,24 @@ object Prop {
     if(p) Proved else Falsified("()",0)
   }
 
+  val S = Gen.weighted(
+    Gen.choose(1,4).map(Executors.newFixedThreadPool) -> .75,
+    Gen.unit(Executors.newCachedThreadPool()) -> .25)
+
+  def forAllPar[A](g: Gen[A])(f: A => Par[Boolean]): Prop = {
+    forAll(S ** g) { case s ** a => f(a)(s).get() }
+  }
+
+  def forAllPar[A](g: SGen[A])(f: A => Par[Boolean]): Prop = {
+    forAll(S.unsized ** g) { case s ** a => f(a)(s).get() }
+  }
+
+  def equalPar[A](p: Par[A], p2: Par[A]): Par[Boolean] = Par.map2(p, p2)(_ == _)
+
+  def checkPar(p: => Par[Boolean]): Prop = {
+    forAll(S){ s => p(s).get() }
+  }
+
 }
 
 object Test extends App {
@@ -219,5 +246,12 @@ object Test extends App {
   run(maxProp)
   println("SORTED PROP:")
   run(sortedProp)
+
+  val smallParInt = smallInt.map(Par.unit)
+  val smallParInt2Sum = (smallParInt ** smallParInt).map { case a ** b => Par.fork( Par.map2(a,b){_+_} ) }
+  val smallParIntListSum = listOf(smallInt).map(l => Par.map(Par.sequence(l.map(Par.unit))){_.sum} )
+  val forkProp = forAllPar(smallParInt) { x =>
+    Prop.equalPar(Par.fork(x), x)
+  }
 
 }
