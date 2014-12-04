@@ -254,4 +254,15 @@ object Test extends App {
     Prop.equalPar(Par.fork(x), x)
   }
 
+  val intPredGen: Gen[Int => Boolean] = ???
+  val takeWhileProp = forAll(listOf(smallInt) ** intPredGen.unsized) { case ns ** f =>
+      val takeResult = ns.takeWhile(f)
+      takeResult.forall( x => ns.contains(x) && f(x) )
+  }
+
+  val takeWhileAndDropWhileProp = forAll(listOf(smallInt) ** intPredGen.unsized) { case ns ** f =>
+    val takeResult = ns.takeWhile(f)
+    val dropResult = ns.dropWhile(f)
+    takeResult ++ dropResult == ns
+  }
 }
