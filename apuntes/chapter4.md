@@ -1,8 +1,9 @@
 ### Chapter 4
 
-* Another way of understanding RT is that the meaning of RT expressions _does not depend on context_ and may be reasoned about locally, while the meaning of non-RT expressions is _context dependent_ and requires more global reasoning. 
+> Another way of understanding RT is that the meaning of RT expressions _does not depend on context_ and may be reasoned about locally, while the meaning of non-RT expressions is _context dependent_ and requires more global reasoning. 
 
-* The problems with exceptions:
+___
+The problems with exceptions:
 
 ⋅⋅* (...) exceptions break RT and introduce context dependence. (...) This is the source of the folklore advice that
 exceptions should be used only for "error handling", not for "control flow".
