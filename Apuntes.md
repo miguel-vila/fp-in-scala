@@ -17,3 +17,5 @@
 ## [Part II: Functional design and combinator libraries](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/part2.md)
 
 * [Chapter 7: Purely functional parallelism](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter7.md)
+
+* [Chapter 8: Property-based testing](https://github.com/miguel-vila/fp-in-scala/blob/master/apuntes/chapter8.md)
