@@ -8,7 +8,7 @@
 
 Los siguientes enlaces:
 
-- [ ] [The Algebra of Algebraic Data Types](http://chris-taylor.github.io/blog/2013/02/10/the-algebra-of-algebraic-data-types/) by Chris Taylor.
+- [x] [The Algebra of Algebraic Data Types](http://chris-taylor.github.io/blog/2013/02/10/the-algebra-of-algebraic-data-types/) by Chris Taylor.
 - [ ] [Species and Functors and Types, Oh My!](http://www.cis.upenn.edu/~byorgey/papers/species-pearl.pdf) by Brent Yorgey
 - [ ] [Clowns to the left of me, jokers to the right](http://personal.cis.strath.ac.uk/~conor/Dissect.pdf) by Conor McBride
 
