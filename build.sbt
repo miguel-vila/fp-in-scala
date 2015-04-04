@@ -10,5 +10,6 @@ val scalazV = "7.0.6"
 
 libraryDependencies ++= Seq(
     "org.scalaz"        %%	"scalaz-core"				% scalazV,
+    "com.chuusai" %% "shapeless" % "2.2.0-RC3",
     "org.scalatest"		%%	"scalatest"					% "2.2.0"   % "test"
 )
