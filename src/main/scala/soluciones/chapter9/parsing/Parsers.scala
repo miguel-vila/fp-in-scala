@@ -87,6 +87,9 @@ trait Parsers[ParserError, Parser[+_]] { self =>
   def mapInTermsOfFlatmap[A,B](p: Parser[A])(f: A => B): Parser[B] =
     p.flatMap( a => succeed(f(a)) )
 
+  def betweenSpaces[A](p: Parser[A]): Parser[A] =
+    (spaces ** p ** spaces).map { case ((_,a),_) => a }
+
   def first[A,B](p: Parser[(A,B)]): Parser[A] = p.map(_._1)
   def second[A,B](p: Parser[(A,B)]): Parser[B] = p.map(_._2)
 
@@ -116,6 +119,7 @@ trait Parsers[ParserError, Parser[+_]] { self =>
     def flatMap[B](f: A => Parser[B]): Parser[B] = self.flatMap(p)(f)
     def many = self.many(p)
     def *-*[B](p2: Parser[B]) = self.spaceProduct(p,p2)
+    def betweenSpaces = self.betweenSpaces(p)
   }
 
   object Laws {
@@ -155,22 +159,22 @@ object JSON {
 
   def nullJsonParser[Err, Parser[+_]](P: Parsers[Err,Parser]): Parser[JNull.type] = {
     import P._
-    string("null").slice.map(_ => JNull)
+    string("null").slice.map(_ => JNull).betweenSpaces
   }
 
   def numberJsonParser[Err, Parser[+_]](P: Parsers[Err,Parser]): Parser[JNumber] = {
     import P._
-    regex("\\-?\\d+(\\.\\d+(e\\d+)?)?".r).map(s => JNumber(s.toDouble))
+    regex("\\-?\\d+(\\.\\d+(e\\d+)?)?".r).map(s => JNumber(s.toDouble)).betweenSpaces
   }
 
   def stringJsonParser[Err, Parser[+_]](P: Parsers[Err,Parser]): Parser[JString] = {
     import P._
-    regex("\".*\"".r).map(s => JString(s.substring(1,s.length-1)))
+    regex("\".*\"".r).map(s => JString(s.substring(1,s.length-1))).betweenSpaces
   }
 
   def booleanJsonParser[Err, Parser[+_]](P: Parsers[Err,Parser]): Parser[JBool] = {
     import P._
-    (string("true").slice.map(_ => JBool(true))) or (string("false").slice.map(_ => JBool(false)))
+    ((string("true").slice.map(_ => JBool(true))) or (string("false").slice.map(_ => JBool(false)))).betweenSpaces
   }
 
   def arrayJsonParser[Err, Parser[+_]](P: Parsers[Err,Parser]): Parser[JArray] = {
