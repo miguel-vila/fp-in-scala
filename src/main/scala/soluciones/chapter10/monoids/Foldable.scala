@@ -35,6 +35,8 @@ object FoldableInstances {
 
   }
 
+  implicit val indexedSeqFoldable: Foldable[IndexedSeq] = ???
+
   implicit val treeFoldable = new Foldable[Tree] {
     override def foldRight[A, B](as: Tree[A])(z: B)(f: (A, B) => B): B = ???
 

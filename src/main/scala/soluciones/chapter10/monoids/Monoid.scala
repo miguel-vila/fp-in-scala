@@ -2,7 +2,7 @@ package soluciones.chapter10.monoids
 
 import soluciones.chapter7.parallelism.Par
 import soluciones.chapter7.parallelism.Par.Par
-import soluciones.chapter7.parallelism.Par.Par
+import soluciones.chapter8.testing.{ Gen, Prop }
 
 /**
  * Created by mglvl on 17/04/15.
@@ -17,17 +17,37 @@ trait Monoid[A] {
 
 object Monoid {
 
+  def apply[A](_op: (A, A) => A, _zero: A): Monoid[A] = new Monoid[A] {
+    def op(a: A, b: => A): A = _op(a,b)
+    def zero: A = _zero
+  }
+
+  val sumIntMonoid = apply[Int](_+_,0)
+
+  def endoMonoid[A]: Monoid[A => A] = new Monoid[A => A] {
+    def op(f1: A => A, f2: => (A => A)): A => A = f2.andThen(f1)(_)
+    def zero = identity
+  }
+
+  def monoidLaws[A](m: Monoid[A], G: Gen[A]): Prop = {
+    val triples = for {
+      a1 <- G
+      a2 <- G
+      a3 <- G
+    } yield (a1,a2,a3)
+    val assoc = Prop.forAll(triples) { case (a1,a2,a3) =>
+      m.op(a1, m.op(a2, a3)) == m.op(m.op(a1,a2), a3)
+    }
+    val identity = Prop.forAll(G)(a => m.op(a,m.zero) == a && m.op(m.zero,a) == a)
+    assoc && identity
+  }
+
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
     as.foldLeft(m.zero)((b, a) => m.op(b, f(a)))
 
-  /*
-  def foldLeft[A,B](as: List[A])(z: B)(f: (B,A) => B)(m: Monoid[B]): B = {
-    val g: A => B = f(z,_)
-    val m = new Monoid[B] {
-      def op(b1: B, b2: => B): B = f(f(b1,???),???)
-    }
+  def foldLeft[A,B](as: List[A])(z: B)(f: (B,A) => B): B = {
+    ???
   }
-  */
 
   def foldMapV[A, B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): B = {
     if(v.length == 0) {
@@ -59,24 +79,20 @@ object Monoid {
 
   trait Ordered[+A]
   case object Empty extends Ordered[Nothing]
-  case class SingleElement[A](a: A) extends Ordered[A]
   case class OrderedSequence[A](first: A, last: A) extends Ordered[A]
   case object Unordered extends Ordered[Nothing]
 
   def ordered[A](v: IndexedSeq[A])(implicit comp: Ordering[A]): Boolean = {
     val m = new Monoid[Ordered[A]] {
       override def op(a: Ordered[A], b: => Ordered[A]): Ordered[A] = (a,b) match {
-        case (SingleElement(a),SingleElement(b)) if comp.compare(a,b) <= 0 => OrderedSequence(a,b)
         case (OrderedSequence(fa,la), OrderedSequence(fb,lb)) if comp.compare(la,fb) <= 0 => OrderedSequence(fa,lb)
-        case (SingleElement(a),OrderedSequence(fb,lb)) if comp.compare(a,fb) <= 0 => OrderedSequence(a,lb)
-        case (OrderedSequence(fa,la), SingleElement(b)) if comp.compare(la,b) <= 0 => OrderedSequence(fa,b)
         case (Empty,x) => x
         case (x, Empty) => x
         case _ => Unordered
       }
       override def zero: Ordered[A] = Empty
     }
-    val ordered = foldMapV(v,m)(a => SingleElement(a))
+    val ordered = foldMapV(v,m)(a => OrderedSequence(a,a))
     ordered match {
       case Unordered => false
       case _ => true
@@ -90,72 +106,36 @@ object Monoid {
     ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
   }
 
-  def wc(s: String): (Option[String], Int, Option[String]) = {
-    var insideWord_> = false
-    var insideWord_< = false
-    var words = 0
-    var startWord = ""
-    var wordIsAtTheStart = false
-    var endWord = ""
-    var wordIsAtTheEnd = false
-    for (i <- 0 to s.length - 1) {
-      val c_> = s(i)
-      if(insideWord_> && !isWordChar(c_>)) {
-        insideWord_> = false
-      } else if(insideWord_> && isWordChar(c_>)) {
-        endWord = s"$endWord${c_>}"
-      } else if(!insideWord_> && isWordChar(c_>)) {
-        words+=1
-        insideWord_> = true
-        endWord = c_>.toString
-      }
-      if(i == s.length-1 && insideWord_>){
-        wordIsAtTheEnd = true
-      }
-
-      val j = s.length - 1 - i
-      val c_< = s(j)
-//      println(s"c_< = ${c_<}")
-      if(insideWord_< && !isWordChar(c_<)) {
-        insideWord_< = false
-      } else if(insideWord_< && isWordChar(c_<)) {
-        startWord = s"${c_<}$startWord"
-      } else if(!insideWord_< && isWordChar(c_<)) {
-        insideWord_< = true
-        startWord = c_<.toString
-      }
-//      println(s"i = $i")
-//      println(s"insideWord_< = ${insideWord_<}")
-      if(j == 0 && insideWord_<){
-        wordIsAtTheStart = true
-      }
+  val wcMonoid: Monoid[WC] = new Monoid[WC] {
+    override def zero = Stub("")
+    override def op(x: WC, y: => WC): WC = (x,y) match {
+      case (Stub(xs), Stub(ys)) => Stub(xs ++ ys)
+      case (Stub(xs), Part(lStub,words,rStub)) => Part(xs++lStub,words,rStub)
+      case (Part(lStub,words,rStub), Stub(ys)) => Part(lStub,words,rStub++ys)
+      case (Part(lStubx,wordsx,_), Part(_,wordsy,rStuby)) =>
+        Part(lStubx,wordsx+wordsy,rStuby)
     }
-//    println(s"wordIsAtTheStart = $wordIsAtTheStart")
-//    println(s"wordIsAtTheEnd = $wordIsAtTheEnd")
-    val sw = if(wordIsAtTheStart) Some(startWord) else None
-    val fw = if(wordIsAtTheEnd) Some(endWord) else None
-    val totalWords = words - (if(sw.isDefined) 1 else 0 ) - (if(fw.isDefined) 1 else 0 )
-    (sw, totalWords,fw)
   }
-/*
-  val wcMonoid = new Monoid[WC] {
-    override def op(a: WC, b: => WC): WC = (a,b) match {
-      case (Stub(sa), Stub(sb)) =>
-        val (l,w,r) = wc(sa + sb)
-        Part(l.getOrElse(""), w, r.getOrElse(""))
-      case (Stub(sa), Part(lb,w,rb)) =>
-        val (la,wa,ra) = wc(sa)
-        Part(la.getOrElse(""), wa + (if(ra.isDefined || lb.length>0) 1 else 0) + w, rb)
-      case (Part(la,w,ra),Stub(sb)) =>
-        val (lb,wb,rb) = wc(sb)
-        Part(la, w + (if(ra.length>0 || lb.isDefined) 1 else 0) + wb, rb.getOrElse(""))
-      case (Part(la,wa,ra),Part(lb,wb,rb)) =>
-        Part(la,wa + (if(ra.length>0 || lb.length >0) 1 else 0) + wb, rb)
-    }
 
-    override def zero: WC = Stub("")
+  /*
+  def toWC(str: String): WC = {
+    val parts = str.split(" ")
+    if(parts.size() <= 1)
+      Stub(str)
+    else
+      Part(parts.head, parts.size - 2, parts.last)
   }
-*/
+
+  def wordCount(str: String): WC = {
+    if(str == "")
+      wcMonoid.zero
+    else {
+      val (left,right) = str.splitAt(str.length / 2)
+      wcMonoid.op()
+    }
+  }
+  */
+
 
   def productMonoid[A,B](ma: Monoid[A], mb: Monoid[B]): Monoid[(A,B)] = new Monoid[(A, B)] {
     override def op(x: (A, B), y: => (A, B)): (A, B) = (x,y) match {
@@ -170,6 +150,23 @@ object Monoid {
 
     override def zero: (A) => B = _ => B.zero
   }
+
+  def mapMergeMonoid[K,V](V: Monoid[V]): Monoid[Map[K,V]] =
+    new Monoid[Map[K,V]] {
+      def zero = Map[K,V]()
+      def op(a: Map[K,V], b: => Map[K,V]): Map[K,V] =
+        (a.keySet ++ b.keySet).foldLeft(zero) { (acc,k) =>
+          acc.updated(k,
+                      V.op(
+                        a.getOrElse(k, V.zero),
+                        b.getOrElse(k, V.zero)
+                      )
+          )
+        }
+    }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] =
+    FoldableInstances.indexedSeqFoldable.foldMap(as)(a => Map(a -> 1))(mapMergeMonoid(sumIntMonoid))
 
 
 }

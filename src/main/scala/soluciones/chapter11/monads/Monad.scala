@@ -40,12 +40,17 @@ trait Monad[F[_]] {
     flatMap(f(a))(g)
   }
 
-  def flatMapByCompose[A,B](fa: F[A])(f: A => F[B]): F[B] = {
-    val _f: Unit => F[A] = _ => fa
-    compose(_f,f)(())
-  }
+  def flatMapByCompose[A,B](fa: F[A])(f: A => F[B]): F[B] =
+    compose[F[A],A,B](identity, f)(fa)
+
+  def join[A](mma: F[F[A]]): F[A] = flatMap(mma)(identity)
+
+  def flatMapByJoin[A,B](fa: F[A])(f: A => F[B]): F[B] =
+    join(map(fa)(f))
 
 }
+
+case class Id[A](value: A) extends AnyVal
 
 object Monad {
 
@@ -65,6 +70,11 @@ object Monad {
     override def flatMap[A, B](fa: State[S, A])(f: (A) => State[S, B]): State[S, B] = fa.flatMap(f)
 
     override def unit[A](a: A): State[S, A] = State.unit(a)
+  }
+
+  val idMonad = new Monad[Id] {
+    override def unit[A](a: A) = Id(a)
+    override def flatMap[A, B](ida: Id[A])(f: A => Id[B]): Id[B] = f(ida.value)
   }
 
 }
