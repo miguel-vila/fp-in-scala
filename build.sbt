@@ -1,5 +1,4 @@
 name := "fp-in-scala"
-
 scalaVersion := "2.11.0"
 
 resolvers ++= Seq(

@@ -2,7 +2,7 @@
 
 ### Functor laws
 
-For Functor , we’ll stipulate the familiar law we first introduced in chapter 7 for our Par data type: 
+For Functor , we’ll stipulate the familiar law we first introduced in chapter 7 for our Par data type:
 
 `map(x)(a => a) == x`
 
@@ -96,11 +96,13 @@ x.flatMap( a => f(a).flatMap(g) )
 Using `compose`:
 
 `compose(identity, unit) == f`
+
 `compose(unit, f) == f`
 
 Using `flatMap`:
 
 `flatMap(x)(unit) == x`
+
 `flatMap(unit(y))(f) == f(y)`
 
 Proof that both law definitions are equivalent:
@@ -109,12 +111,12 @@ The first one:
 
 Having `f(y) == x` and starting by applying `y` to `compose(f, unit)`:
 
-```scala 
+```scala
 compose(f, unit)(y) ==
     // Compose impl.
 { a => flatMap(f(a))(unit) }(y) ==
     // Applying y
-flatMap(f(y))(unit) == 
+flatMap(f(y))(unit) ==
     // f(y) == x
 flatMap(x)(unit)
 ```
@@ -131,7 +133,7 @@ The second one:
 
 Applying `y` to `compose(unit,f)`:
 
-```scala 
+```scala
 compose(unit,f)(y) ==
     // Compose impl.
 { a => flatMap(unit(a))(f) }(y) ==
@@ -140,4 +142,3 @@ flatMap(unit(y))(f)
 ```
 
 Applying `y` to `f` we get `f(y)`.
-
