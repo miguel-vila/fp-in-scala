@@ -5,6 +5,7 @@
 * Identity
 
 `map2(unit(()), fa)((_,a) => a) == fa`
+
 `map2(fa, unit(()))((a,_) => a) == fa`
 
 * Associativity
@@ -21,6 +22,8 @@ product(product(fa,fb),fc) == map(product(fa, product(fb,fc)))(assoc)
 `map2(a,b)( (a,b) => (f(a),g(b)) ) == product(map(a)(f), map(b)(g))`
 
 ### Exercises
+
+#### Exercise 12.7
 
 Prove that all monads are applicative functors by showing that if the monad laws hold, the Monad implementations of map2 and map satisfy the applicative laws.
 
@@ -113,4 +116,88 @@ product(fa, fb.flatMap { b => fc.map { c => (b,c) } }).flatMap { a_bc => unit(as
 product(fa, product(fb,fc)).flatMap { a_bc => unit(assoc(a_bc))  }
   // definition of map
 product(fa, product(fb,fc)).map(assoc)
+```
+
+* Naturality of product
+
+```scala
+map2(fa,fb)( (a,b) => (f(a),g(b)) ) ==
+  // definition of map and function application
+fa.flatMap { a => fb.map { b => (f(a),g(b)) } } ==
+  // definition of map
+fa.flatMap{ a => fb.flatMap{ b => unit( (f(a),g(b)) ) } }
+  // monad's identity law: unit(y).flatMap(f) == f(y)
+fa.flatMap{ a => unit( f(a) ).flatMap { af => fb.flatMap{ b => unit( (af,g(b)) ) } } }
+  // monad's associative law: x.flatMap(f).flatMap(g) == x.flatMap(a => f(a).flatMap(g))
+fa.flatMap{ a => unit( f(a) ) }.flatMap { af => fb.flatMap{ b => unit( (af,g(b)) ) } }
+  // definition of map
+fa.map(f).flatMap { af => fb.flatMap{ b => unit( (af,g(b)) ) } }
+  // monad's identity law: unit(y).flatMap(f) == f(y)
+fa.map(f).flatMap { af => fb.flatMap{ b => unit(g(b)).flatMap { bg => unit( (af,bg) ) } } }
+  // monad's associative law: x.flatMap(f).flatMap(g) == x.flatMap(a => f(a).flatMap(g))
+fa.map(f).flatMap { af => fb.flatMap{ b => unit(g(b)) }.flatMap { bg => unit( (af,bg) ) } }
+  // definition of map
+fa.map(f).flatMap { af => fb.map(g).flatMap { bg => unit( (af,bg) ) } }
+  // definition of map
+fa.map(f).flatMap { af => fb.map(g).map { bg => (af,bg) } }
+  // definition of product
+product(fa.map(f), fb.map(g))
+```
+#### Exercise 12.10
+
+Prove that the composite applicative functor meets the applicative laws:
+
+```scala
+def compose[F[_], G[_]](F: Applicative[F], G: Applicative[G]): Applicative[({ type f[x] = F[G[x]] })#f] =
+  new Applicative[({ type f[x] = F[G[x]] })#f] {
+    def map2[A,B,C](fga: F[G[A]], fgb: F[G[B]])(f: (A,B) => C): F[G[C]] =
+      F.map2(fga,fgb)( (ga,gb) => G.map2(ga,gb)(f) )
+    def unit[A](a: => A): F[G[A]] = F.unit(G.unit(a))
+  }
+```
+
+* Identity laws
+
+```scala
+map2(unit(()), fga)((_,a) => a) ==
+  // definition of map2
+F.map2(unit(()),fga)( (unit,ga) => G.map2(unit,ga)( (_,a) => a ) ) ==
+  // identity law for G
+F.map2(unit(()),fga)( (unit,ga) => ga ) ==
+  // identity law for F
+fga
+```
+
+Other identity law must be symmetrical
+
+* Associativity
+
+```scala
+product(product(fga,fgb),fgc) ==
+  // definition of product (outermost)
+map2(product(fga,fgb), fgc)( (a_b,c) => (a_b,c) ) ==
+  // definition of map2  for the composite
+F.map2(product(fga,fgb), fgc)( (ga_gb,gc) => G.map2(ga_gb,gc)( (a_b,c) => (a_b,c) ) ) ==
+  // definition of product (innermost G)
+F.map2(product(fga,fgb), fgc)( (ga_gb,gc) => G.product(ga_gb,gc) ) ==
+  // definition of product
+F.map2(map2(fga,fgb)( (a,b) => (a,b) ), fgc)( (ga_gb,gc) => G.product(ga_gb,gc) ) ==
+  // definition of map2 for the composite
+F.map2(F.map2(fga,fgb)( (ga,gb) =>  G.map2(ga,gb)( (a,b) => (a,b) ) ), fgc)( (ga_gb,gc) => G.product(ga_gb,gc) ) ==
+  // definition of product
+F.map2(F.map2(fga,fgb)( (ga,gb) =>  G.product(ga,gb) ), fgc)( (ga_gb,gc) => G.product(ga_gb,gc) ) ==
+
+... // going nowhere
+
+F.map2(F.map2(fga, product(fgb,fgc))( (ga, gb_c) => G.product(ga,gb_c) ), unit(()))( (ga_bc, gunit) => G.map2(ga_bc, gunit)( (a_bc,unit) => assoc(a_bc) ) ) ==
+  // definition of map2 for the composite ^
+map2(F.map2(fga, product(fgb,fgc))( (ga, gb_c) => G.product(ga,gb_c) ), unit(()))( (a_bc,unit) => assoc(a_bc) ) ==
+  // definition of map in terms of map2 ^
+F.map2(fga, product(fgb,fgc))( (ga, gb_c) => G.product(ga,gb_c) ).map(assoc) ==
+  // definition of product ^
+F.map2(fga, product(fgb,fgc))( (ga, gb_c) => G.map2(ga,gb_c)( (a,b_c) => (a,b_c) ) ).map(assoc) ==
+  // definition of map2 for the composite ^
+map2(fga, product(fgb,fgc))( (a,b_c) => (a,b_c) ).map(assoc) ==
+  // definition of product ^
+product(fga, product(fgb,fgc)).map(assoc)
 ```
